@@ -21,8 +21,8 @@ DHT dht(DHT_PIN, DHT_TYPE);
 unsigned long lastPublish = 0;
 
 void setupHandler() {
-	Homie.setNodeProperty(temperatureNode, "unit", "c", true);
-	Homie.setNodeProperty(humidityNode, "unit", "%", true);
+	temperatureNode.setProperty("unit").send("c");
+	humidityNode.setProperty("unit").send("%");
 
 	dht.begin();
 }
@@ -32,10 +32,12 @@ void loopHandler() {
 		float t = dht.readTemperature();
 		float h = dht.readHumidity();
 
-		if (!isnan(t) && Homie.setNodeProperty(temperatureNode, "degrees", String(t), true)) {
+		if (!isnan(t) &&
+		    temperatureNode.setProperty("degrees").send(String(t))) {
 			lastPublish = millis();
 		}
-		if (!isnan(h) && Homie.setNodeProperty(humidityNode, "relative", String(h), true)) {
+		if (!isnan(h) &&
+		    humidityNode.setProperty("relative").send(String(h))) {
 			lastPublish = millis();
 		}
 	}
@@ -44,15 +46,12 @@ void loopHandler() {
 void setup() {
 	Serial.begin(115200);
 
-	Homie.setFirmware(FW_NAME, FW_VERSION);
-
-	Homie.registerNode(temperatureNode);
-	Homie.registerNode(humidityNode);
+	Homie_setFirmware(FW_NAME, FW_VERSION);
 
 	Homie.setSetupFunction(setupHandler);
 	Homie.setLoopFunction(loopHandler);
 
-	Homie.enableBuiltInLedIndicator(false);  
+	Homie.disableLedFeedback(); 
 	Homie.setup();
 }
 
