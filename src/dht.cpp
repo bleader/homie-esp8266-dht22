@@ -15,31 +15,29 @@ const char *__FLAGGED_FW_VERSION = "\x6a\x3f\x3e\x0e\xe1" FW_VERSION "\xb0\x30\x
 
 HomieNode temperatureNode("temperature", "temperature");
 HomieNode humidityNode("humidity", "humidity");
+HomieNode batteryNode("battery", "battery");
 
 DHT dht(DHT_PIN, DHT_TYPE);
 
+ADC_MODE(ADC_VCC);
 unsigned long lastPublish = 0;
 
 void setupHandler() {
 	temperatureNode.setProperty("unit").send("c");
 	humidityNode.setProperty("unit").send("%");
+	batteryNode.setProperty("unit").send("V");
 
 	dht.begin();
 }
 
 void loopHandler() {
-	if (millis() - lastPublish >= PUB_INTERVAL * 1000UL) {
+	if (millis() - lastPublish >= 10 * 1000UL) {
 		float t = dht.readTemperature();
 		float h = dht.readHumidity();
+		float v = ESP.getVcc() / 1000.0f;
 
-		if (!isnan(t) &&
-		    temperatureNode.setProperty("degrees").send(String(t))) {
-			lastPublish = millis();
-		}
-		if (!isnan(h) &&
-		    humidityNode.setProperty("relative").send(String(h))) {
-			lastPublish = millis();
-		}
+		Serial << "t = " << t << "°C / h = " << h << " % /  v = " << v  << "V" << endl;
+		lastPublish = millis();
 	}
 }
 
