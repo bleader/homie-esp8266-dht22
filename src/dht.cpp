@@ -1,6 +1,10 @@
 #include <Homie.h>
 #include <DHT.h>
 
+/* comment this out to remove almost all prints
+ * this saves an average of 80ms on a roughly 4s uptime between deep sleeps */
+#define DEBUG_MODE 1
+
 #define FW_NAME		"raton-dht"
 #define FW_VERSION	"0.0.3"
 
@@ -20,24 +24,23 @@ DHT dht(DHT_PIN, DHT_TYPE);
 
 ADC_MODE(ADC_VCC);
 bool published = false;
-uint32_t connected_at;
+uint32_t start;
+float t, h, v;
 
 void setupHandler() {
 	temperatureNode.setProperty("unit").send("c");
 	humidityNode.setProperty("unit").send("%");
 	batteryNode.setProperty("unit").send("V");
 
-	dht.begin();
 }
 
 void loopHandler() {
 	/* make sure not to send anything until mqtt is connected */
 	if (Homie.isConnected() && (!published)) {
-		float t = dht.readTemperature();
-		float h = dht.readHumidity();
-		float v = ESP.getVcc() / 1000.0f;
 
+#ifdef DEBUG_MODE
 		Serial << "t = " << t << "°C / h = " << h << " % /  v = " << v  << "V" << endl;
+#endif
 		if (!isnan(v)) {
 			batteryNode.setProperty("relative").send(String(h));
 		}
@@ -53,21 +56,31 @@ void loopHandler() {
 void onHomieEvent(const HomieEvent& event) {
 	switch(event.type) {
 		case HomieEventType::READY_TO_SLEEP:
+#ifdef DEBUG_MODE
 			Serial << "Ready to sleep" << endl;
+#endif
 			ESP.deepSleep(10 * 1000000); /* 10min */
-			break;
-		case HomieEventType::MQTT_CONNECTED:
-			connected_at = millis();
 			break;
 	}
 }
 
 void setup() {
+	start = millis();
 	published = false;
 
+	/* reading early to avoid power jitter from wifi */
+	dht.begin();
+	t = dht.readTemperature();
+	h = dht.readHumidity();
+	v = ESP.getVcc() / 1000.0f;
+
+#ifdef DEBUG_MODE
 	Serial.begin(115200);
 	Serial.println();
 	Serial.println();
+#else
+	Homie.disableLogging();
+#endif
 
 	Homie_setFirmware(FW_NAME, FW_VERSION);
 
