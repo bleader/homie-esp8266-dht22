@@ -12,4 +12,4 @@ convention for IoT.
 
 # Notes
 
-Nothing yet.
+Ditched aside for now since DHT reading are jittery on battery.
